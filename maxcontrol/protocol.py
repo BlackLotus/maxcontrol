@@ -15,7 +15,7 @@ def get_device(device):
     device_serial=device[4:14]
     device_name_length=int(binascii.hexlify(device[14:15]),16)
     device_name=device[15:15+device_name_length]
-    device_room_id=device[15+device_name_length:15+device_name_length+1]
+    device_room_id=int(binascii.hexlify(device[15+device_name_length:15+device_name_length+1]),15)
     rest=device[15+device_name_length+1:]
     return device_serial,device_name,device_room_id,rest
 
