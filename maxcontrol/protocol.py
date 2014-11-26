@@ -1,8 +1,26 @@
 import socket
-import base64
+import base64,binascii
+
+def get_room(room):
+    room_id=int(binascii.hexlify(room[:1]),16)
+    room_name_length=int(binascii.hexlify(room[1:2]),16)
+    room_name=room[2:2+room_name_length]
+    address=room[2+room_name_length:5+room_name_length]
+    rest=room[5+room_name_length:]
+    return room_id,room_name,address,rest
+
+def get_device(device):
+    device_id=device[:1]
+    device_address=device[1:4]
+    device_serial=device[4:14]
+    device_name_length=int(binascii.hexlify(device[14:15]),16)
+    device_name=device[15:15+device_name_length]
+    device_room_id=device[15+device_name_length:15+device_name_length+1]
+    rest=device[15+device_name_length+1:]
+    return device_serial,device_name,device_room_id,rest
 
 class MaxControl(object):
-    def __init__(self, ip, port):
+    def __init__(self, ip, port=62910):
         self.ip = ip
         self.port = port
         self.system_information = {}
@@ -23,15 +41,15 @@ class MaxControl(object):
         bits = '01' + bin(celsius * 2)[2:].zfill(6)
         req += chr(int(bits, 2))
         req += chr(0) + chr(0)
-
         req_b64 = base64.b64encode(req)
-
         request = 's:%s\r\n' % req_b64
         self.socket.send(request)
         self.__close()
 
     def read_values(self):
         self.__connect()
+        self.rooms = {}
+        self.devices={}
         b = self.socket.recv(1)
         index = ''
         while index != 'L':
@@ -53,30 +71,16 @@ class MaxControl(object):
                 resp_ = resp.split(',')
                 b64data = resp_[-1]
                 data = base64.b64decode(b64data)
-                data = data[2:]
-                room_id = '%s%s' % (ord(data[0]), ord(data[1]))
-                data = data[2:]
-                room_name_length = ord(data[0])
-                room_name = data[1:room_name_length + 1]
-                data = data[room_name_length + 2:]
-                data = data[7:]  # Offset??
-                device_serial = data[:10]
-                data = data[10:]
-                device_name_length = ord(data[0])
+                room_count = int(binascii.hexlify(data[1:2]),16)
+                data = data[3:]
+                for i in range(1,room_count+1):
+                    room_id,room_name,address,data=get_room(data)
+                    self.rooms[room_id]=room_name
+                device_count = int(binascii.hexlify(data[:1]),16)
                 data = data[1:]
-                device_name = data[:device_name_length]
-                data = data[device_name_length:]
-                device_room_id = '%s%s' % (ord(data[0]), ord(data[1]))
-
-                self.rooms = {
-                    room_id: room_name,
-                }
-                self.devices = {
-                    device_serial: {
-                        'name': device_name,
-                        'room': device_room_id,
-                    },
-                }
+                for i in range(1,device_count+1):
+                    device_serial,device_name,device_room_id,data=get_device(data)
+                    self.devices[device_serial]={'name':device_name,'room':device_room_id}
             elif index == 'C':
                 # Connect RF addresses with serial numbers
                 resp = resp.replace('C:', '')
@@ -86,7 +90,6 @@ class MaxControl(object):
                 data = base64.b64decode(b64data)
                 serial = data[8:18]
                 rf_addr = base64.b64encode(data[1:4])
-
                 if serial in self.devices:
                     self.devices[serial]['rfaddr'] = rf_addr
             elif index == 'L':
@@ -122,4 +125,3 @@ class MaxControl(object):
                 b = self.socket.recv(1)
         self.__close()
         return self.devices
-
