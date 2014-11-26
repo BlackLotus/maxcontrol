@@ -1,23 +1,23 @@
 import socket
-import base64,binascii
+import base64
 
 def get_room(room):
-    room_id=int(binascii.hexlify(room[:1]),16)
-    room_name_length=int(binascii.hexlify(room[1:2]),16)
+    room_id=ord(room[:1])
+    room_name_length=ord(room[1:2])
     room_name=room[2:2+room_name_length]
     address=room[2+room_name_length:5+room_name_length]
-    rest=room[5+room_name_length:]
-    return room_id,room_name,address,rest
+    data=room[5+room_name_length:]
+    return room_id,room_name,address,data
 
 def get_device(device):
     device_id=device[:1]
     device_address=device[1:4]
     device_serial=device[4:14]
-    device_name_length=int(binascii.hexlify(device[14:15]),16)
+    device_name_length=ord(device[14:15])
     device_name=device[15:15+device_name_length]
-    device_room_id=int(binascii.hexlify(device[15+device_name_length:15+device_name_length+1]),15)
-    rest=device[15+device_name_length+1:]
-    return device_serial,device_name,device_room_id,rest
+    device_room_id=ord(device[15+device_name_length:15+device_name_length+1])
+    data=device[15+device_name_length+1:]
+    return device_serial,device_name,device_room_id,data
 
 class MaxControl(object):
     def __init__(self, ip, port=62910):
@@ -71,12 +71,12 @@ class MaxControl(object):
                 resp_ = resp.split(',')
                 b64data = resp_[-1]
                 data = base64.b64decode(b64data)
-                room_count = int(binascii.hexlify(data[1:2]),16)
+                room_count = ord(data[1:2])
                 data = data[3:]
                 for i in range(1,room_count+1):
                     room_id,room_name,address,data=get_room(data)
                     self.rooms[room_id]=room_name
-                device_count = int(binascii.hexlify(data[:1]),16)
+                device_count = ord(data[:1])
                 data = data[1:]
                 for i in range(1,device_count+1):
                     device_serial,device_name,device_room_id,data=get_device(data)
