@@ -14,7 +14,7 @@ ToDo
 
 This code is far from perfect. This still needs to be done:
 
-- [ ] Support for multiple rooms / devices in the metadata response
+- [x] Support for multiple rooms / devices in the metadata response
 - [ ] Implement all the timetable features
 - [ ] Clean up code, document everything
 
