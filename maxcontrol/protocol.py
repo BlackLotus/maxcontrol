@@ -38,7 +38,8 @@ class MaxControl(object):
         req = '000440000000'.decode('hex')
         req += base64.b64decode(rf_addr)
         req += chr(1)
-        bits = '01' + bin(celsius * 2)[2:].zfill(6)
+        # ok to calculate the temperature this way you have to convert 64+2*temp to bin
+        bits=bin(int(64+2*celsius))[2:]
         req += chr(int(bits, 2))
         req += chr(0) + chr(0)
         req_b64 = base64.b64encode(req)
@@ -99,7 +100,8 @@ class MaxControl(object):
                     data_ = data[1:ord(data[0])]
                     data = data[ord(data[0]) + 1:]
                     rf_addr = base64.b64encode(data_[:3])
-                    celsius = ord(data_[7]) / 2
+                    # needs an .0 for floating point values
+                    celsius = ord(data_[7]) / 2.0
                     valve_percent = ord(data_[6])
                     info = bin(ord(data_[5]))[2:].zfill(7)
                     program = {
